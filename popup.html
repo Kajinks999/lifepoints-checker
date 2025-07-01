@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LifePoints Checker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="../icons/icon48.png" class="logo" alt="LifePoints">
+      <h1>LifePoints Checker</h1>
+    </div>
+    
+    <div class="status-card">
+      <div class="status-indicator" id="status-indicator">❔</div>
+      <div class="status-text" id="status-text">Pronto para verificar</div>
+      <div class="last-check" id="last-check"></div>
+    </div>
+    
+    <button id="check-btn" class="pulse-button">
+      <span class="btn-icon">🔍</span>
+      <span class="btn-text">Verificar Agora</span>
+    </button>
+    
+    <div class="settings-row">
+      <div class="settings-link" id="settings-btn">
+        ⚙️ Configurações
+      </div>
+      <div class="auto-check">
+        <span id="interval-display">Verificando a cada: 5 min</span>
+      </div>
+    </div>
+    
+    <div class="result-message" id="result-message"></div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
