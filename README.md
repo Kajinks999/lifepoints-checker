@@ -51,3 +51,9 @@ Ative o Modo Desenvolvedor
 Clique em Carregar sem compactação
 
 Selecione a pasta /main deste projeto
+
+📜 Licença
+Distribuído sob licença MIT. Veja LICENSE para mais informações.
+
+✉️ Contato
+Pedro Viana Netto - @viananetto999 - viananetto999@gmail.com
