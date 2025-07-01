@@ -43,13 +43,9 @@ Clone o repositório:
 git clone https://github.com/kajinks999/11fepoints-checker.git
 ```
 - Instalação no Chrome ou Opera:
-
 - Acesse chrome://extensions ou as configurações de extensão do seu navegador.
-
 - Ative o Modo Desenvolvedor.
-
 - Clique em "Carregar sem compactação".
-
 - Selecione a pasta /main deste projeto.
 
 📜 Licença
