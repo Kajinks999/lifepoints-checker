@@ -40,8 +40,8 @@ main/
 1. Clone o repositório:
    ```bash
    git clone https://github.com/Kajinks999/lifepoints-checker.git
-   
-### No Navegador
+   ```
+No Navegador
 2.Instalação no Chrome ou Opera
 
 Acesse chrome://extensions ou as configurações de extensão do seu navegador
