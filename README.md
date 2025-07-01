@@ -36,21 +36,20 @@ main/
 - Chrome ou Edge (versão 88+)
 - Permissão para carregar extensões não empacotadas
 
-## ⚡ Instalação
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/Kajinks999/lifepoints-checker.git
-   ```
-No Navegador
-2.Instalação no Chrome ou Opera
+Instalação
+Clone o repositório:
 
-Acesse chrome://extensions ou as configurações de extensão do seu navegador
+bash
+git clone https://github.com/kajinks999/11fepoints-checker.git
+Instalação no Chrome ou Opera:
 
-Ative o Modo Desenvolvedor
+Acesse chrome://extensions ou as configurações de extensão do seu navegador.
 
-Clique em Carregar sem compactação
+Ative o Modo Desenvolvedor.
 
-Selecione a pasta /main deste projeto
+Clique em "Carregar sem compactação".
+
+Selecione a pasta /main deste projeto.
 
 📜 Licença
 Distribuído sob licença MIT. Veja LICENSE para mais informações.
