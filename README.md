@@ -13,14 +13,23 @@ Extensão para monitoramento automático de pesquisas no painel LifePoints.
 ## 🛠️ Estrutura do Projeto
 main/
 ├── icons/ # Assets visuais
+
 ├── scripts/ # Lógica principal
+
 │ ├── background.js # Processos em segundo plano
+
 │ └── checker.js # Detector de pesquisas
+
 ├── popup/ # Interface do usuário
+
 │ ├── popup.html # Estrutura da janela
+
 │ ├── popup.js # Lógica interativa
+
 │ └── popup.css # Estilos visuais
+
 ├── manifest.json # Configuração da extensão
+
 └── README.md # Este arquivo
 
 ## 🚦 Pré-requisitos
