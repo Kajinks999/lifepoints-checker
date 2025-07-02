@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "LifePoints Checker Pro",
-  "version": "2.4",
-  "description": "Verificação confiável de pesquisas no LifePoints",
+  "name": "LifePoints Checker Pro+",
+  "version": "4.4",
+  "description": "Extensão avançada para acompanhamento de pesquisas no LifePoints com histórico inteligente",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
