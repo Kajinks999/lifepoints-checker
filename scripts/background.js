@@ -1,26 +1,37 @@
 let CHECK_INTERVAL = 5;
 let isChecking = false;
 let activeTabId = null;
+let verificationCount = 0;
+let autoCheckEnabled = true;
+let pauseEnabled = true;
 
 // Inicialização
 chrome.runtime.onInstalled.addListener(initialize);
 chrome.runtime.onStartup.addListener(initialize);
 
 function initialize() {
-  chrome.storage.sync.get(['checkInterval'], (result) => {
-    CHECK_INTERVAL = result.checkInterval || 5;
-    startAlarm();
-  });
+  chrome.storage.sync.get(
+    ['checkInterval', 'autoCheckEnabled', 'pauseEnabled'],
+    (result) => {
+      CHECK_INTERVAL = result.checkInterval || 5;
+      autoCheckEnabled = result.autoCheckEnabled !== false;
+      pauseEnabled = result.pauseEnabled !== false;
+      if (autoCheckEnabled) startAlarm();
+    }
+  );
 }
 
-// Verificação inteligente com timeout
 async function checkSurveys(source = 'automatic') {
-  if (isChecking) return;
+  if (isChecking || (!autoCheckEnabled && source === 'automatic')) return;
+  
+  if (pauseEnabled && verificationCount >= 10) {
+    console.log("[Pausa] Intervalo de segurança ativado (30 minutos)");
+    await new Promise(resolve => setTimeout(resolve, 30 * 60 * 1000));
+    verificationCount = 0;
+  }
+  
+  verificationCount++;
   isChecking = true;
-
-  const verificationTimeout = setTimeout(() => {
-    finishVerification(false, source, "Timeout na verificação");
-  }, 15000); // 15 segundos de timeout
 
   try {
     const [existingTab] = await chrome.tabs.query({
@@ -38,40 +49,78 @@ async function checkSurveys(source = 'automatic') {
       activeTabId = tab.id;
     }
 
-    await chrome.scripting.executeScript({
-      target: {tabId: activeTabId},
-      func: (src) => { window.verificationSource = src; },
-      args: [source]
-    });
-
     const results = await chrome.scripting.executeScript({
-      target: {tabId: activeTabId},
+      target: { tabId: activeTabId },
       files: ['scripts/checker.js']
     });
 
     if (!results || !results[0]?.result) {
-      finishVerification(false, source, "Script não retornou resultados");
+      finishVerification({ hasSurveys: false, count: 0 }, source);
+    } else {
+      finishVerification(results[0].result, source);
     }
   } catch (error) {
-    finishVerification(false, source, `Erro: ${error.message}`);
+    finishVerification({ hasSurveys: false, count: 0 }, source, error.message);
   } finally {
-    clearTimeout(verificationTimeout);
+    isChecking = false;
   }
 }
 
-function finishVerification(hasSurveys, source, logMessage = "") {
-  if (logMessage) console.log(logMessage);
+function finishVerification(result, source, error = null) {
+  if (error) console.error("[LifePoints] Erro:", error);
   
+  if (result.hasSurveys && result.surveys?.length > 0) {
+    chrome.storage.local.get(['history', 'missedSurveys', 'totalPoints'], (data) => {
+      const existingHistory = data.history || [];
+      const existingPoints = parseInt(data.totalPoints) || 0;
+
+      // Filtra pesquisas novas não existentes no histórico
+      const newSurveys = result.surveys.filter(newSurvey => 
+        !existingHistory.some(existing => existing.id === newSurvey.id)
+      );
+
+      if (newSurveys.length > 0) {
+        const newEntries = newSurveys.map(survey => ({
+          id: survey.id,
+          points: survey.points,
+          timestamp: new Date().toISOString(),
+          clicked: false
+        }));
+
+        const updatedHistory = [...existingHistory, ...newEntries].slice(-100);
+        const missedCount = updatedHistory.filter(x => !x.clicked).length;
+        const pointsToAdd = newSurveys.reduce((sum, survey) => sum + parseInt(survey.points || 0), 0);
+        const totalPoints = existingPoints + pointsToAdd;
+
+        chrome.storage.local.set({
+          history: updatedHistory,
+          missedSurveys: missedCount,
+          totalPoints: totalPoints
+        });
+
+        if (source === 'automatic') {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon-alert48.png',
+            title: `${newSurveys.length} nova(s) pesquisa(s)!`,
+            message: `Total de pontos perdidos: ${totalPoints}`,
+            buttons: [{ title: 'Abrir LifePoints' }]
+          });
+        }
+      }
+    });
+  }
+
   chrome.runtime.sendMessage({
-    hasSurveys: hasSurveys,
-    source: source
+    type: "verificationResult",
+    source: source,
+    ...result
   });
 
   if (activeTabId) {
     chrome.tabs.remove(activeTabId).catch(() => {});
     activeTabId = null;
   }
-  isChecking = false;
 }
 
 function startAlarm() {
@@ -82,16 +131,24 @@ function startAlarm() {
   });
 }
 
-function updateAlarmInterval(newInterval) {
-  CHECK_INTERVAL = newInterval;
-  startAlarm();
-}
-
-// Comunicação
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.action) {
-    case "updateInterval":
-      updateAlarmInterval(message.interval);
+    case "updateSettings":
+      CHECK_INTERVAL = message.interval;
+      autoCheckEnabled = message.autoCheckEnabled;
+      pauseEnabled = message.pauseEnabled;
+      
+      chrome.storage.sync.set({
+        checkInterval: CHECK_INTERVAL,
+        autoCheckEnabled: autoCheckEnabled,
+        pauseEnabled: pauseEnabled
+      });
+
+      if (autoCheckEnabled) {
+        startAlarm();
+      } else {
+        chrome.alarms.clear('checkSurveys');
+      }
       sendResponse({ success: true });
       break;
       
@@ -100,47 +157,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
       
-    case "getInterval":
-      sendResponse({ interval: CHECK_INTERVAL });
+    case "getSettings":
+      sendResponse({
+        interval: CHECK_INTERVAL,
+        autoCheckEnabled: autoCheckEnabled,
+        pauseEnabled: pauseEnabled
+      });
       break;
       
-    case "statusUpdate":
-      if (message.hasSurveys !== undefined) {
-        updateIcon(message.hasSurveys);
-        sendNotification(message.hasSurveys, message.source);
-      }
+    case "resetIcon":
+      chrome.action.setIcon({
+        path: {
+          "16": "icons/icon16.png",
+          "32": "icons/icon32.png",
+          "48": "icons/icon48.png",
+          "128": "icons/icon128.png"
+        }
+      });
+      sendResponse({ success: true });
+      break;
+      
+    case "markAsClicked":
+      chrome.storage.local.get(['history', 'totalPoints'], (data) => {
+        const updatedHistory = (data.history || []).map(item => {
+          if (item.id === message.id) {
+            return { ...item, clicked: true };
+          }
+          return item;
+        });
+        
+        const missedCount = updatedHistory.filter(x => !x.clicked).length;
+        chrome.storage.local.set({
+          history: updatedHistory,
+          missedSurveys: missedCount
+        });
+      });
       sendResponse({ success: true });
       break;
   }
   return true;
 });
 
-function updateIcon(hasSurveys) {
-  const iconPath = hasSurveys ? {
-    "16": "icons/icon-alert16.png",
-    "32": "icons/icon-alert32.png",
-    "48": "icons/icon-alert48.png",
-    "128": "icons/icon-alert128.png"
-  } : {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  };
-  
-  chrome.action.setIcon({ path: iconPath });
-}
-
-function sendNotification(hasSurveys, source) {
-  if (source === 'manual') {
-    chrome.action.setBadgeText({
-      text: hasSurveys ? "SIM" : "NÃO"
-    });
-    setTimeout(() => chrome.action.setBadgeText({text: ""}), 3000);
-  }
-}
-
-// Alarmes
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'checkSurveys') checkSurveys();
+  if (alarm.name === 'checkSurveys' && autoCheckEnabled) checkSurveys();
+});
+
+chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  if (buttonIndex === 0) {
+    chrome.tabs.create({ url: 'https://app.lifepointspanel.com/pt-BR/dashboard' });
+  }
 });
