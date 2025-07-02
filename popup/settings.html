@@ -5,30 +5,79 @@
   <title>Configurações</title>
   <link rel="stylesheet" href="popup.css">
   <style>
-    .settings-container {
+    body {
+      width: 350px;
       padding: 15px;
-      max-width: 300px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
     }
     h2 {
       color: var(--primary-color);
       margin-top: 0;
-      font-size: 18px;
+      margin-bottom: 20px;
+      text-align: center;
     }
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
     label {
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       font-weight: 500;
-      color: var(--text-color);
     }
-    input {
+    input[type="number"] {
       width: 100%;
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 5px;
-      box-sizing: border-box;
+      font-size: 14px;
+    }
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+      margin-right: 10px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--primary-color);
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .toggle-label {
       font-size: 14px;
     }
     .save-btn {
@@ -48,36 +97,47 @@
     }
     #status-message {
       padding: 10px;
-      border-radius: 5px;
       margin-top: 15px;
+      border-radius: 5px;
       text-align: center;
       display: none;
-      animation: fadeIn 0.3s;
     }
     .success {
       background: #e8f5e9;
       color: #2e7d32;
-      display: block;
     }
     .error {
       background: #ffebee;
       color: #c62828;
-      display: block;
     }
   </style>
 </head>
 <body>
-  <div class="settings-container">
-    <h2>⚙️ Configurações</h2>
-    
-    <div class="form-group">
-      <label for="interval">Intervalo de verificação (minutos):</label>
-      <input type="number" id="interval" min="1" max="120">
-    </div>
-    
-    <button id="save-btn" class="save-btn">💾 Salvar Configurações</button>
-    <div id="status-message"></div>
+  <h2>⚙️ Configurações</h2>
+  
+  <div class="form-group">
+    <label for="interval">Intervalo de verificação (minutos):</label>
+    <input type="number" id="interval" min="1" max="120">
   </div>
+  
+  <div class="toggle-container">
+    <label class="toggle-switch">
+      <input type="checkbox" id="auto-check-toggle" checked>
+      <span class="slider"></span>
+    </label>
+    <span class="toggle-label">Verificação automática</span>
+  </div>
+  
+  <div class="toggle-container">
+    <label class="toggle-switch">
+      <input type="checkbox" id="pause-toggle" checked>
+      <span class="slider"></span>
+    </label>
+    <span class="toggle-label">Pausa inteligente (30min após 10 verificações)</span>
+  </div>
+  
+  <button id="save-btn" class="save-btn">💾 Salvar Configurações</button>
+  <div id="status-message"></div>
   
   <script src="settings.js"></script>
 </body>
