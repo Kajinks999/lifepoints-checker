@@ -1,32 +1,53 @@
 function checkForSurveys() {
-  return new Promise((resolve) => {
-    // Verificação 1: Mensagem explícita de "sem pesquisas"
-    const noSurveysMsg = document.body.innerText.includes("Você não tem pesquisas disponíveis");
-    
-    // Verificação 2: Elementos com # (IDs de pesquisa)
-    const elementsWithHash = Array.from(document.querySelectorAll('*')).filter(el => {
-      const text = el.textContent || el.innerText || '';
-      return text.includes("#") && text.length < 100;
+  try {
+    const surveyCards = Array.from(document.querySelectorAll('[class*="Card"], section')).filter(card => {
+      const text = card.textContent || '';
+      return (
+        text.match(/participar de pesquisa/i) &&
+        text.match(/\d+\s*LIFEPOINTS/i) &&
+        card.querySelector('button, a')
+      );
     });
 
-    // Resultado final
-    const hasSurveys = elementsWithHash.length > 0 && !noSurveysMsg;
-    resolve(hasSurveys);
-  });
+    const surveys = surveyCards.map(card => {
+      const cardText = card.textContent || '';
+      
+      // Extrai ID (4-8 caracteres alfanuméricos)
+      const surveyId = cardText.match(/[a-f0-9]{4,8}(?=\s|$)/i)?.[0] || 
+                     cardText.match(/\b\d{4,8}\b/)?.[0] || 
+                     'ID-'+Math.random().toString(36).substr(2, 8);
+      
+      // Extrai pontos (apenas números)
+      const points = cardText.match(/\d+\s*LIFEPOINTS/i)?.[0]?.replace(/\D/g, '') || '0';
+      
+      // Verifica se é pesquisa em andamento
+      const isInProgress = card.querySelector('[class*="Loading"], [class*="Progress"]') !== null;
+
+      return { 
+        id: surveyId, 
+        points: points,
+        inProgress: isInProgress,
+        element: card.outerHTML.slice(0, 150) // Para debug
+      };
+    });
+
+    const availableSurveys = surveys.filter(s => !s.inProgress);
+
+    return {
+      hasSurveys: availableSurveys.length > 0,
+      count: availableSurveys.length,
+      surveys: availableSurveys,
+      inProgress: surveys.filter(s => s.inProgress).length
+    };
+  } catch (error) {
+    console.error("Erro na verificação:", error);
+    return { 
+      hasSurveys: false, 
+      count: 0,
+      error: error.message
+    };
+  }
 }
 
-// Execução principal
-(async () => {
-  try {
-    const hasSurveys = await checkForSurveys();
-    chrome.runtime.sendMessage({
-      hasSurveys: hasSurveys,
-      source: window.verificationSource || 'automatic'
-    });
-  } catch (error) {
-    chrome.runtime.sendMessage({
-      hasSurveys: false,
-      source: window.verificationSource || 'automatic'
-    });
-  }
-})();
+// Versão otimizada para execução na página
+(() => checkForSurveys())();
